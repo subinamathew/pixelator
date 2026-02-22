@@ -326,18 +326,27 @@ function App() {
           </div>
 
           <div className="control-group">
-            <label>Image Panning</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 40px)', gap: '5px', justifyContent: 'center', marginTop: '5px' }}>
-              <div />
-              <button className="toggle-btn" onClick={() => setPan((p: { x: number, y: number }) => ({ ...p, y: Math.max(-0.5, p.y - 0.1) }))}>↑</button>
-              <div />
-              <button className="toggle-btn" onClick={() => setPan((p: { x: number, y: number }) => ({ ...p, x: Math.max(-0.5, p.x - 0.1) }))}>←</button>
-              <button className="toggle-btn" onClick={() => setPan({ x: 0, y: 0 })}>•</button>
-              <button className="toggle-btn" onClick={() => setPan((p: { x: number, y: number }) => ({ ...p, x: Math.min(0.5, p.x + 0.1) }))}>→</button>
-              <div />
-              <button className="toggle-btn" onClick={() => setPan((p: { x: number, y: number }) => ({ ...p, y: Math.min(0.5, p.y + 0.1) }))}>↓</button>
-              <div />
-            </div>
+            <label>Pan X (Horizontal): {(pan.x * 100).toFixed(0)}%</label>
+            <input
+              type="range"
+              min="-0.5"
+              max="0.5"
+              step="0.01"
+              value={pan.x}
+              onChange={(e) => setPan({ ...pan, x: parseFloat(e.target.value) })}
+            />
+          </div>
+
+          <div className="control-group">
+            <label>Pan Y (Vertical): {(pan.y * 100).toFixed(0)}%</label>
+            <input
+              type="range"
+              min="-0.5"
+              max="0.5"
+              step="0.01"
+              value={pan.y}
+              onChange={(e) => setPan({ ...pan, y: parseFloat(e.target.value) })}
+            />
           </div>
 
           <div className="control-group">
