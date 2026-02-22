@@ -1,5 +1,5 @@
 export type ShapeType = 'square' | 'rectangle' | 'circle' | 'heart';
-export type FilterType = 'none' | 'noir' | 'popart' | 'rainbow';
+export type FilterType = 'none' | 'noir' | 'popart' | 'rainbow' | 'pyssla';
 
 export interface RGB { r: number; g: number; b: number; }
 
@@ -26,6 +26,19 @@ const DESATURATE_PALETTE: RGB[] = [
   { r: 255, g: 0, b: 255 },  // Magenta
   { r: 0, g: 0, b: 0 },      // Black
   { r: 255, g: 255, b: 255 } // White
+];
+
+const PYSSLA_PALETTE: RGB[] = [
+  { r: 0, g: 0, b: 0 },       // Black
+  { r: 255, g: 255, b: 255 }, // White
+  { r: 200, g: 162, b: 200 }, // Soft Lila
+  { r: 255, g: 20, b: 147 },  // Bright Pink (Deep Pink)
+  { r: 255, g: 0, b: 0 },     // Red
+  { r: 255, g: 255, b: 0 },   // Yellow
+  { r: 0, g: 100, b: 0 },     // Dark Green
+  { r: 139, g: 69, b: 19 },   // Brown
+  { r: 255, g: 165, b: 0 },   // Orange
+  { r: 0, g: 0, b: 139 }      // Dark Blue
 ];
 
 export const loadImageFile = (file: File): Promise<HTMLImageElement> => {
@@ -229,6 +242,9 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
         const gray = Math.round(targetR * 0.299 + targetG * 0.587 + targetB * 0.114);
         const contrast = gray > 128 ? Math.min(255, gray + 50) : Math.max(0, gray - 50);
         const matched = getClosestColor(contrast, contrast, contrast, options.palette);
+        r = matched.r; g = matched.g; b = matched.b;
+      } else if (options.filter === 'pyssla') {
+        const matched = getClosestColor(targetR, targetG, targetB, PYSSLA_PALETTE);
         r = matched.r; g = matched.g; b = matched.b;
       } else if (options.filter === 'rainbow' || options.filter === 'popart') {
         // Shared Rainbow Style Mapping

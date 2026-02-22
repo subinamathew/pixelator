@@ -318,7 +318,7 @@ function App() {
             <input
               type="range"
               min="1.0"
-              max="3.0"
+              max="5.0"
               step="0.1"
               value={zoom}
               onChange={(e) => setZoom(parseFloat(e.target.value))}
@@ -355,6 +355,7 @@ function App() {
             <div className="toggle-group">
               <button className={`toggle-btn ${filter === 'none' ? 'active' : ''}`} onClick={() => setFilter('none')}>Standard</button>
               <button className={`toggle-btn ${filter === 'noir' ? 'active' : ''}`} onClick={() => setFilter('noir')}>Noir</button>
+              <button className={`toggle-btn ${filter === 'pyssla' ? 'active' : ''}`} onClick={() => setFilter('pyssla')}>Pyssla</button>
               <button
                 className={`toggle-btn ${filter === 'popart' ? 'active' : ''}`}
                 onClick={() => {
@@ -362,7 +363,7 @@ function App() {
                   else setFilter('popart');
                 }}
               >
-                Pop Art {filter === 'popart' ? `(${popArtScheme === 0 ? 'VIBGYOR' : popArtScheme === 1 ? 'RGB' : popArtScheme === 2 ? 'YCM' : popArtScheme === 3 ? 'Regia' : popArtScheme === 4 ? 'Sunset' : popArtScheme === 5 ? 'Electric' : 'Retro'})` : ''}
+                Pop Art {(filter === 'popart') ? `(${popArtScheme === 0 ? 'VIBGYOR' : popArtScheme === 1 ? 'RGB' : popArtScheme === 2 ? 'YCM' : popArtScheme === 3 ? 'Regia' : popArtScheme === 4 ? 'Sunset' : popArtScheme === 5 ? 'Electric' : 'Retro'})` : ''}
               </button>
               <button
                 className={`toggle-btn ${filter === 'rainbow' ? 'active' : ''}`}
