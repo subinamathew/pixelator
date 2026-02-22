@@ -16,6 +16,7 @@ export interface ProcessOptions {
   saturation?: number;
   brightness?: number;
   blinkState?: boolean; // Toggle for blinking 10th row/col
+  skinTone?: number; // 0=Auto, 1=🏻, 2=🏼, 3=🏽, 4=🏾, 5=🏿
 }
 
 const DESATURATE_PALETTE: RGB[] = [
@@ -236,6 +237,33 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
       targetR = Math.max(0, Math.min(255, Math.round(targetR)));
       targetG = Math.max(0, Math.min(255, Math.round(targetG)));
       targetB = Math.max(0, Math.min(255, Math.round(targetB)));
+
+      // --- Skin Tone Calibration (Gamma Correction) ---
+      // Fitzpatrick scale approximations (0-5)
+      // 1=🏻 (Luma ~220), 2=🏼 (Luma ~180), 3=🏽 (Luma ~140), 4=🏾 (Luma ~80), 5=🏿 (Luma ~40)
+      if (options.skinTone && options.skinTone > 0) {
+        // Target mid-gray is 128. If they select a skin tone, we map its natural Luma to 128.
+        let targetLuma = 128; // Default no-op
+        if (options.skinTone === 1) targetLuma = 220;
+        else if (options.skinTone === 2) targetLuma = 180;
+        else if (options.skinTone === 3) targetLuma = 140;
+        else if (options.skinTone === 4) targetLuma = 80;
+        else if (options.skinTone === 5) targetLuma = 40;
+
+        // Calculate Gamma (gamma = ln(target/255) / ln(source/255))
+        // We want to force targetLuma to become 128.
+        // So: 128/255 = (targetLuma/255)^gamma -> gamma = ln(128/255) / ln(targetLuma/255)
+        const normalizeTarget = targetLuma / 255;
+        // avoid log(0) or log(1)
+        if (normalizeTarget > 0.01 && normalizeTarget < 0.99) {
+          const gamma = Math.log(128 / 255) / Math.log(normalizeTarget);
+
+          // Apply Gamma to R, G, B
+          targetR = 255 * Math.pow(targetR / 255, gamma);
+          targetG = 255 * Math.pow(targetG / 255, gamma);
+          targetB = 255 * Math.pow(targetB / 255, gamma);
+        }
+      }
 
       // Filtering logic
       if (options.filter === 'noir') {

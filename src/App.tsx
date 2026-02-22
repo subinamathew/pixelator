@@ -96,6 +96,7 @@ function App() {
   const [saturation, setSaturation] = useState<number>(1.0);
   const [isBlinking, setIsBlinking] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
+  const [skinTone, setSkinTone] = useState<number>(0);
 
   // Separate palettes for Noir (fixed 2) and Pop Art
   const [noirPalette, setNoirPalette] = useState<RGB[]>([
@@ -147,12 +148,13 @@ function App() {
           isDesaturated,
           brightness,
           saturation,
-          blinkState
+          blinkState,
+          skinTone
         });
         setIsProcessing(false);
       }, 50);
     }
-  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated, brightness, saturation, blinkState]);
+  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated, brightness, saturation, blinkState, skinTone]);
 
   // Handle the blinking effect timer
   useEffect(() => {
@@ -361,7 +363,7 @@ function App() {
 
           <div className="control-group">
             <label>Style Filter</label>
-            <div className="toggle-group">
+            <div className="toggle-group" style={{ marginBottom: '10px' }}>
               <button className={`toggle-btn ${filter === 'none' ? 'active' : ''}`} onClick={() => setFilter('none')}>Standard</button>
               <button className={`toggle-btn ${filter === 'noir' ? 'active' : ''}`} onClick={() => setFilter('noir')}>Noir</button>
               <button className={`toggle-btn ${filter === 'pyssla' ? 'active' : ''}`} onClick={() => setFilter('pyssla')}>Pyssla</button>
@@ -381,6 +383,21 @@ function App() {
                 Rainbow
               </button>
             </div>
+          </div>
+
+          <div className="control-group">
+            <label>Skin Tone Calibration (Filter Mid-tone Fix)</label>
+            <div className="toggle-group" style={{ display: 'flex', gap: '5px' }}>
+              <button className={`toggle-btn ${skinTone === 0 ? 'active' : ''}`} onClick={() => setSkinTone(0)}>🚫 Auto</button>
+              <button className={`toggle-btn ${skinTone === 1 ? 'active' : ''}`} onClick={() => setSkinTone(1)}>🏻</button>
+              <button className={`toggle-btn ${skinTone === 2 ? 'active' : ''}`} onClick={() => setSkinTone(2)}>🏼</button>
+              <button className={`toggle-btn ${skinTone === 3 ? 'active' : ''}`} onClick={() => setSkinTone(3)}>🏽</button>
+              <button className={`toggle-btn ${skinTone === 4 ? 'active' : ''}`} onClick={() => setSkinTone(4)}>🏾</button>
+              <button className={`toggle-btn ${skinTone === 5 ? 'active' : ''}`} onClick={() => setSkinTone(5)}>🏿</button>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Maps your skin naturally into Noir & Pop Art mid-tones to prevent lost details.
+            </p>
           </div>
 
           <div className="control-group">
