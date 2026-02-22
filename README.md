@@ -1,4 +1,12 @@
-# React + TypeScript + Vite
+# PixelArt Pro
+
+## How to Run
+
+1. Make sure you have Node.js installed.
+2. Run `npm install` to install dependencies.
+3. Run `npm run dev` to start the development server.
+
+## Overview
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -92,6 +92,8 @@ function App() {
   const [shape, setShape] = useState<ShapeType | 'paper' | 'custom'>('circle');
   const [filter, setFilter] = useState<FilterType>('none');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [brightness, setBrightness] = useState<number>(1.0);
+  const [saturation, setSaturation] = useState<number>(1.0);
 
   // Separate palettes for Noir (fixed 2) and Pop Art
   const [noirPalette, setNoirPalette] = useState<RGB[]>([
@@ -115,7 +117,7 @@ function App() {
       setIsProcessing(true);
       setTimeout(() => {
         // Fallback for shapes not yet in engine
-        const engineShape = (shape === 'paper' || shape === 'custom') ? 'square' : (shape as ShapeType);
+        const engineShape = (shape === 'paper' || shape === 'custom') ? 'rectangle' : (shape as ShapeType);
 
         // Choose correct palette for the engine
         let activePalette: RGB[] = [];
@@ -140,12 +142,14 @@ function App() {
           zoom,
           offsetX: pan.x,
           offsetY: pan.y,
-          isDesaturated
+          isDesaturated,
+          brightness,
+          saturation
         });
         setIsProcessing(false);
       }, 50);
     }
-  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated]);
+  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated, brightness, saturation]);
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -224,18 +228,34 @@ function App() {
               ref={fileInputRef}
               className="hidden"
               accept="image/*"
+              capture="environment"
               onChange={handleFileUpload}
             />
           </div>
 
           {image && (
-            <button
-              className="action-btn"
-              style={{ marginTop: '1.5rem', width: '100%', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Choose Different Image
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+              <button
+                className="action-btn"
+                style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Choose Photo
+              </button>
+              <button
+                className="action-btn"
+                style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.capture = 'user';
+                    fileInputRef.current.click();
+                    setTimeout(() => { if (fileInputRef.current) fileInputRef.current.capture = 'environment'; }, 1000);
+                  }
+                }}
+              >
+                Selfie
+              </button>
+            </div>
           )}
         </section>
 
@@ -248,6 +268,30 @@ function App() {
               max="150"
               value={gridSize}
               onChange={(e) => setGridSize(parseInt(e.target.value))}
+            />
+          </div>
+
+          <div className="control-group">
+            <label>Brightness: {brightness.toFixed(2)}x</label>
+            <input
+              type="range"
+              min="0.0"
+              max="2.0"
+              step="0.1"
+              value={brightness}
+              onChange={(e) => setBrightness(parseFloat(e.target.value))}
+            />
+          </div>
+
+          <div className="control-group">
+            <label>Saturation: {saturation.toFixed(2)}x</label>
+            <input
+              type="range"
+              min="0.0"
+              max="3.0"
+              step="0.1"
+              value={saturation}
+              onChange={(e) => setSaturation(parseFloat(e.target.value))}
             />
           </div>
 
@@ -281,11 +325,10 @@ function App() {
           <div className="control-group">
             <label>Shape</label>
             <div className="toggle-group">
+              <button className={`toggle-btn ${shape === 'rectangle' ? 'active' : ''}`} onClick={() => setShape('rectangle')}>Rectangle</button>
               <button className={`toggle-btn ${shape === 'square' ? 'active' : ''}`} onClick={() => setShape('square')}>Square</button>
               <button className={`toggle-btn ${shape === 'circle' ? 'active' : ''}`} onClick={() => setShape('circle')}>Circle</button>
               <button className={`toggle-btn ${shape === 'heart' ? 'active' : ''}`} onClick={() => setShape('heart')}>Heart</button>
-              <button className={`toggle-btn ${shape === 'paper' ? 'active' : ''}`} onClick={() => setShape('paper')}>Paper</button>
-              <button className={`toggle-btn ${shape === 'custom' ? 'active' : ''}`} onClick={() => setShape('custom')}>Custom</button>
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-export type ShapeType = 'square' | 'circle' | 'heart';
+export type ShapeType = 'square' | 'rectangle' | 'circle' | 'heart';
 export type FilterType = 'none' | 'noir' | 'popart' | 'rainbow';
 
 export interface RGB { r: number; g: number; b: number; }
@@ -13,6 +13,8 @@ export interface ProcessOptions {
   offsetX: number; // X offset (-0.5 to 0.5)
   offsetY: number; // Y offset (-0.5 to 0.5)
   isDesaturated?: boolean; // New option for 7-color mapping
+  saturation?: number;
+  brightness?: number;
 }
 
 const DESATURATE_PALETTE: RGB[] = [
@@ -39,39 +41,36 @@ export const loadImageFile = (file: File): Promise<HTMLImageElement> => {
   });
 };
 
-const drawHeart = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) => {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.beginPath();
+const getHeartPath = (x: number, y: number, width: number, height: number): Path2D => {
+  const path = new Path2D();
   const topCurveHeight = height * 0.3;
-  ctx.moveTo(width / 2, topCurveHeight);
+  path.moveTo(x + width / 2, y + topCurveHeight);
   // top left curve
-  ctx.bezierCurveTo(
-    width / 2, 0,
-    0, 0,
-    0, topCurveHeight
+  path.bezierCurveTo(
+    x + width / 2, y + 0,
+    x + 0, y + 0,
+    x + 0, y + topCurveHeight
   );
   // bottom left
-  ctx.bezierCurveTo(
-    0, height * 0.6,
-    width / 2, height * 0.9,
-    width / 2, height
+  path.bezierCurveTo(
+    x + 0, y + height * 0.6,
+    x + width / 2, y + height * 0.9,
+    x + width / 2, y + height
   );
   // bottom right
-  ctx.bezierCurveTo(
-    width / 2, height * 0.9,
-    width, height * 0.6,
-    width, topCurveHeight
+  path.bezierCurveTo(
+    x + width / 2, y + height * 0.9,
+    x + width, y + height * 0.6,
+    x + width, y + topCurveHeight
   );
   // top right curve
-  ctx.bezierCurveTo(
-    width, 0,
-    width / 2, 0,
-    width / 2, topCurveHeight
+  path.bezierCurveTo(
+    x + width, y + 0,
+    x + width / 2, y + 0,
+    x + width / 2, y + topCurveHeight
   );
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+  path.closePath();
+  return path;
 };
 
 // Palette logic is now dynamic based on user selection
@@ -136,22 +135,28 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
   offCtx.drawImage(image, sx, sy, sWidth, sHeight, 0, 0, workWidth, workHeight);
   const imgData = offCtx.getImageData(0, 0, workWidth, workHeight).data;
 
-  // CLEAR AND SETUP CLIPPING
+  // CLEAR
   ctx.clearRect(0, 0, workWidth, workHeight);
 
   ctx.save();
-  if (options.shape === 'circle') {
-    ctx.beginPath();
-    ctx.arc(workWidth / 2, workHeight / 2, Math.min(workWidth, workHeight) / 2, 0, Math.PI * 2);
-    ctx.clip();
-  } else if (options.shape === 'heart') {
-    drawHeart(ctx, 0, 0, workWidth, workHeight);
-    ctx.clip();
-  }
 
-  // Fill background inside clip (optional, but requested slate background makes sense for contrast)
-  // User asked for "crop in that shape", implying transparency outside.
-  // We'll keep the background inside the shape for better visibility of the "art".
+  // Create boundary path for "isPointInPath" check (no clipping)
+  let shapePath: Path2D | null = null;
+  const minDim = Math.min(workWidth, workHeight);
+
+  if (options.shape === 'circle') {
+    shapePath = new Path2D();
+    shapePath.arc(workWidth / 2, workHeight / 2, minDim / 2, 0, Math.PI * 2);
+  } else if (options.shape === 'heart') {
+    shapePath = getHeartPath(0, 0, workWidth, workHeight);
+  } else if (options.shape === 'square') {
+    shapePath = new Path2D();
+    const sx = (workWidth - minDim) / 2;
+    const sy = (workHeight - minDim) / 2;
+    shapePath.rect(sx, sy, minDim, minDim);
+  } // rectangle means full canvas, no path constraint needed
+
+  // Fill background
   ctx.fillStyle = '#1e293b';
   ctx.fillRect(0, 0, workWidth, workHeight);
 
@@ -201,6 +206,23 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
         targetB = (targetB + prng(seed++) * 50) % 255;
       }
 
+      // Apply Brightness & Saturation
+      const brightness = options.brightness !== undefined ? options.brightness : 1.0;
+      const saturation = options.saturation !== undefined ? options.saturation : 1.0;
+
+      targetR *= brightness;
+      targetG *= brightness;
+      targetB *= brightness;
+
+      const grayVal = 0.2989 * targetR + 0.5870 * targetG + 0.1140 * targetB;
+      targetR = grayVal + saturation * (targetR - grayVal);
+      targetG = grayVal + saturation * (targetG - grayVal);
+      targetB = grayVal + saturation * (targetB - grayVal);
+
+      targetR = Math.max(0, Math.min(255, Math.round(targetR)));
+      targetG = Math.max(0, Math.min(255, Math.round(targetG)));
+      targetB = Math.max(0, Math.min(255, Math.round(targetB)));
+
       // Filtering logic
       if (options.filter === 'noir') {
         const gray = Math.round(targetR * 0.299 + targetG * 0.587 + targetB * 0.114);
@@ -212,12 +234,12 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
         const max = Math.max(targetR, targetG, targetB);
         const min = Math.min(targetR, targetG, targetB);
         const diff = max - min;
-        const brightness = (max + min) / 2;
+        const colBrightness = (max + min) / 2;
 
         let styled = false;
         if (diff < 30) {
           // Desaturated: Grey/Black -> Black, Bright -> White
-          if (brightness < 120) { r = 0; g = 0; b = 0; }
+          if (colBrightness < 120) { r = 0; g = 0; b = 0; }
           else { r = 255; g = 255; b = 255; }
           styled = true;
         } else if (targetR > targetG && targetG > targetB && targetR > 60 && diff < 120) {
@@ -234,9 +256,9 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
             const matched = getClosestColor(targetR, targetG, targetB, options.palette);
             r = matched.r; g = matched.g; b = matched.b;
           } else {
-            const brightness = Math.round(targetR * 0.299 + targetG * 0.587 + targetB * 0.114);
+            const bVal = Math.round(targetR * 0.299 + targetG * 0.587 + targetB * 0.114);
             // Map 0-255 to 0-palette.length-1
-            const index = Math.floor((brightness / 256) * options.palette.length);
+            const index = Math.floor((bVal / 256) * options.palette.length);
             const matched = options.palette[Math.min(index, options.palette.length - 1)];
             r = matched.r; g = matched.g; b = matched.b;
           }
@@ -257,17 +279,34 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
       const drawX = px + padding;
       const drawY = py + padding;
 
-      if (options.shape === 'square') {
-        ctx.beginPath();
-        ctx.roundRect(drawX, drawY, drawSize, drawSize, drawSize * 0.2);
-        ctx.fill();
-      } else if (options.shape === 'circle') {
-        ctx.beginPath();
-        const radius = drawSize / 2;
-        ctx.arc(drawX + radius, drawY + radius, radius, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (options.shape === 'heart') {
-        drawHeart(ctx, drawX, drawY, drawSize, drawSize);
+      // Check if square is inside the boundary
+      // Need to check the center of the square or all 4 corners
+      // To ensure no incomplete squares, check all 4 corners
+      let isInside = true;
+      if (shapePath) {
+        const c1 = ctx.isPointInPath(shapePath, drawX, drawY);
+        const c2 = ctx.isPointInPath(shapePath, drawX + drawSize, drawY);
+        const c3 = ctx.isPointInPath(shapePath, drawX, drawY + drawSize);
+        const c4 = ctx.isPointInPath(shapePath, drawX + drawSize, drawY + drawSize);
+        if (!c1 || !c2 || !c3 || !c4) {
+          isInside = false;
+        }
+      }
+
+      if (isInside) {
+        if (options.shape === 'square' || options.shape === 'rectangle') {
+          ctx.beginPath();
+          ctx.roundRect(drawX, drawY, drawSize, drawSize, drawSize * 0.2);
+          ctx.fill();
+        } else if (options.shape === 'circle') {
+          ctx.beginPath();
+          ctx.roundRect(drawX, drawY, drawSize, drawSize, drawSize * 0.2);
+          ctx.fill();
+        } else if (options.shape === 'heart') {
+          ctx.beginPath();
+          ctx.roundRect(drawX, drawY, drawSize, drawSize, drawSize * 0.2);
+          ctx.fill();
+        }
       }
     }
   }
