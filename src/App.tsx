@@ -94,6 +94,8 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [brightness, setBrightness] = useState<number>(1.0);
   const [saturation, setSaturation] = useState<number>(1.0);
+  const [isBlinking, setIsBlinking] = useState(false);
+  const [blinkState, setBlinkState] = useState(false);
 
   // Separate palettes for Noir (fixed 2) and Pop Art
   const [noirPalette, setNoirPalette] = useState<RGB[]>([
@@ -144,12 +146,28 @@ function App() {
           offsetY: pan.y,
           isDesaturated,
           brightness,
-          saturation
+          saturation,
+          blinkState
         });
         setIsProcessing(false);
       }, 50);
     }
-  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated, brightness, saturation]);
+  }, [image, gridSize, shape, filter, noirPalette, popPalette, popArtScheme, randomSeed, zoom, pan, isDesaturated, brightness, saturation, blinkState]);
+
+  // Handle the blinking effect timer
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isBlinking) {
+      interval = setInterval(() => {
+        setBlinkState(prev => !prev);
+      }, 500); // Blink every 500ms
+    } else {
+      setBlinkState(false); // Reset to off if blinking is disabled
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isBlinking]);
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -369,6 +387,12 @@ function App() {
                 onClick={() => setIsDesaturated(!isDesaturated)}
               >
                 {isDesaturated ? '7-Colors Only' : 'Full Palette'}
+              </button>
+              <button
+                className={`toggle-btn ${isBlinking ? 'active' : ''}`}
+                onClick={() => setIsBlinking(!isBlinking)}
+              >
+                {isBlinking ? 'Stop Blinking' : '10th Row/Col Blink'}
               </button>
             </div>
           </div>

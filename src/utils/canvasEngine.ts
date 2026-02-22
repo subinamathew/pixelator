@@ -15,6 +15,7 @@ export interface ProcessOptions {
   isDesaturated?: boolean; // New option for 7-color mapping
   saturation?: number;
   brightness?: number;
+  blinkState?: boolean; // Toggle for blinking 10th row/col
 }
 
 const DESATURATE_PALETTE: RGB[] = [
@@ -271,6 +272,22 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
       if (options.isDesaturated) {
         const matched = getClosestColor(r, g, b, DESATURATE_PALETTE);
         r = matched.r; g = matched.g; b = matched.b;
+      }
+
+      // Blinking 10th row / col logic
+      // We apply it if blinkState is true and it's a 10th row or col
+      // (Using 1-based index logically, so x % 10 === 9 or y % 10 === 9)
+      if (options.blinkState && ((x + 1) % 10 === 0 || (y + 1) % 10 === 0)) {
+        // Highlight logic (invert or make bright white/red depending on contrast)
+        // A simple flash to bright white or red is usually visible
+        const brightness = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
+        if (brightness > 128) {
+          // If already bright, flash dark grey
+          r = 50; g = 50; b = 50;
+        } else {
+          // If dark, flash bright white
+          r = 255; g = 255; b = 255;
+        }
       }
 
       ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
