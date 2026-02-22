@@ -244,8 +244,39 @@ export const processImage = (image: HTMLImageElement, canvas: HTMLCanvasElement,
         const matched = getClosestColor(contrast, contrast, contrast, options.palette);
         r = matched.r; g = matched.g; b = matched.b;
       } else if (options.filter === 'pyssla') {
-        const matched = getClosestColor(targetR, targetG, targetB, PYSSLA_PALETTE);
-        r = matched.r; g = matched.g; b = matched.b;
+        // Advanced Pyssla Mapping to preserve details (Skin tones, shadows)
+        // Check if the color is a skin tone / warm mid-tone:
+        const max = Math.max(targetR, targetG, targetB);
+        const min = Math.min(targetR, targetG, targetB);
+        const luma = targetR * 0.299 + targetG * 0.587 + targetB * 0.114;
+        const diff = max - min;
+
+        let customMatched = false;
+
+        if (targetR > targetG && targetG > targetB && diff > 15 && luma > 60 && luma < 220) {
+          // Warm tone (often skin/faces/wood)
+          if (luma < 90) { r = 139; g = 69; b = 19; customMatched = true; } // Brown for dark skin/shadows
+          else if (luma < 150) { r = 255; g = 165; b = 0; customMatched = true; } // Orange for mid skin
+          else if (luma < 190) { r = 200; g = 162; b = 200; customMatched = true; } // Soft Lila for light skin/highlights
+          else { r = 255; g = 255; b = 255; customMatched = true; } // White for extreme highlights
+        } else if (diff < 20) {
+          // Grays/Neutrals - force to Black/White to avoid random color noise
+          if (luma < 100) { r = 0; g = 0; b = 0; customMatched = true; }
+          else { r = 255; g = 255; b = 255; customMatched = true; }
+        }
+
+        if (!customMatched) {
+          // Fallback to strict distance matching for vibrant colors
+          // Boost saturation slightly before distance check to force stronger color matches
+          let sR = targetR, sG = targetG, sB = targetB;
+          const satBoost = 1.3;
+          sR = Math.max(0, Math.min(255, luma + satBoost * (targetR - luma)));
+          sG = Math.max(0, Math.min(255, luma + satBoost * (targetG - luma)));
+          sB = Math.max(0, Math.min(255, luma + satBoost * (targetB - luma)));
+
+          const matched = getClosestColor(sR, sG, sB, PYSSLA_PALETTE);
+          r = matched.r; g = matched.g; b = matched.b;
+        }
       } else if (options.filter === 'rainbow' || options.filter === 'popart') {
         // Shared Rainbow Style Mapping
         const max = Math.max(targetR, targetG, targetB);
